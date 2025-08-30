@@ -80,7 +80,7 @@ pkgbase = librewolf
 	source = librewolf.desktop
 	source = default192x192.png
 	validpgpkeys = 034F7776EF5E0C613D2F7934D29FBD5F93C0CFC3
-	sha256sums = 438d957c99a7cf36e74f2577f1bfaad01359dc3e74c1b13848a47f9c330c890a
+	sha256sums = 770fd784b91a836edd327e816d735a91852872909933dd8a167cd59f388ffbe1
 	sha256sums = 7d01d317b7db7416783febc18ee1237ade2ec86c1567e2c2dd628a94cbf2f25d
 	sha256sums = 959c94c68cab8d5a8cff185ddf4dca92e84c18dccc6dc7c8fe11c78549cdc2f1
 
