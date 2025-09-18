@@ -14,7 +14,7 @@ _firefoxver="${_fixedfirefoxver%.0}" # Removes ".0" from the end. For "136.0.0" 
 pkgrel=1
 pkgdesc="Community-maintained fork of Firefox, focused on privacy, security and freedom."
 url="https://librewolf.net/"
-arch=(x86_64 aarch64)
+arch=(x86_64 x86_64_v3 aarch64)
 license=(MPL-2.0)
 
 depends=(
@@ -23,7 +23,7 @@ depends=(
   at-spi2-core
   bash
   cairo
-  ffmpeg4.4
+  ffmpeg-git
   fontconfig
   freetype2
   gcc-libs
