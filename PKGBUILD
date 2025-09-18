@@ -14,7 +14,7 @@ _firefoxver="${_fixedfirefoxver%.0}" # Removes ".0" from the end. For "136.0.0" 
 pkgrel=1
 pkgdesc="Community-maintained fork of Firefox, focused on privacy, security and freedom."
 url="https://librewolf.net/"
-arch=(x86_64 aarch64)
+arch=(x86_64 x86_64_v3 aarch64)
 license=(MPL-2.0)
 
 depends=(
@@ -23,7 +23,7 @@ depends=(
   at-spi2-core
   bash
   cairo
-  ffmpeg
+  ffmpeg-git
   fontconfig
   freetype2
   gcc-libs
@@ -276,7 +276,7 @@ END
     if [[ -s merged.profdata ]]; then
       stat -c "Profile data found (%s bytes)" merged.profdata
 
-      if [[ "${CARCH}" == "x86_64" ]]; then
+      if [[ "${CARCH%%_v[0-9]}" == "x86_64" ]]; then
         cat >.mozconfig ../mozconfig - <<END
 ac_add_options --enable-profile-use
 END
