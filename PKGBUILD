@@ -2,12 +2,12 @@
 
 # run pgo build or not; with X(vfb) or wayland
 : ${_build_profiled:=true}
-: ${_build_profiled_xvfb:=false}
+: ${_build_profiled_xvfb:=true}
 
 pkgname=librewolf
 _pkgname=LibreWolf
 epoch=1
-pkgver=143.0.0_1
+pkgver=143.0.1_1
 _fixedfirefoxver="${pkgver%_*}" # Version of Firefox this LibreWolf version is based on, but the Firefox patch number is always included
 _librewolfver="${pkgver#*_}"
 _firefoxver="${_fixedfirefoxver%.0}" # Removes ".0" from the end. For "136.0.0" this will result in "136.0" but for "136.0.1" won't do anything.
@@ -91,7 +91,6 @@ if [[ "${_build_profiled}" == "true" ]]; then
   else
     makedepends+=(
       weston
-      xorg-xwayland
       wlheadless-run # aur/xwayland-run-git
     )
   fi
@@ -113,7 +112,7 @@ source=(
   "default192x192.png"
 )
 
-sha256sums=('95e12aca5828c7e1b0b0077ad812554b1573d135264d3f17f0e5e0a1ca9270af'
+sha256sums=('d14081545c2b7a0be9c38ea21f82a1a5ff254eafd391173b12081014c4641879'
             '7d01d317b7db7416783febc18ee1237ade2ec86c1567e2c2dd628a94cbf2f25d'
             '959c94c68cab8d5a8cff185ddf4dca92e84c18dccc6dc7c8fe11c78549cdc2f1')
 
