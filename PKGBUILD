@@ -1,8 +1,8 @@
 # Maintainer: ohfp/lsf <lsf at pfho dot net>
 
-# run pgo build or not; with X(vfb) or wayland
-: ${_build_profiled:=true}
-: ${_build_profiled_xvfb:=true}
+: ${_LIBREWOLF_ENABLEPROFILING:=1}
+: ${_LIBREWOLF_PROFILEX11:=0}
+: ${_LIBREWOLF_MOZMAKEFLAGS}="--jobs=$(nproc)"
 
 pkgname=librewolf
 _pkgname=LibreWolf
@@ -11,7 +11,7 @@ pkgver=143.0.1_1
 _fixedfirefoxver="${pkgver%_*}" # Version of Firefox this LibreWolf version is based on, but the Firefox patch number is always included
 _librewolfver="${pkgver#*_}"
 _firefoxver="${_fixedfirefoxver%.0}" # Removes ".0" from the end. For "136.0.0" this will result in "136.0" but for "136.0.1" won't do anything.
-pkgrel=1
+pkgrel=3
 pkgdesc="Community-maintained fork of Firefox, focused on privacy, security and freedom."
 url="https://librewolf.net/"
 arch=(x86_64 x86_64_v3 aarch64)
@@ -49,6 +49,7 @@ depends=(
   ttf-font
 )
 makedepends=(
+  coreutils
   binutils
   cbindgen
   clang
@@ -83,8 +84,8 @@ optdepends=(
   'xdg-desktop-portal: Screensharing with Wayland'
 )
 
-if [[ "${_build_profiled}" == "true" ]]; then
-  if [[ "${_build_profiled_xvfb}" == "true" ]]; then
+if [[ "${_LIBREWOLF_ENABLEPROFILING:-1}" -eq 1 ]]; then
+  if [[ "${_LIBREWOLF_ENABLEPROFILING:-0}" -eq 1 ]]; then
     makedepends+=(
       xorg-server-xvfb
     )
@@ -120,6 +121,7 @@ validpgpkeys=('034F7776EF5E0C613D2F7934D29FBD5F93C0CFC3') # maltej(?)
 
 
 prepare() {
+  [[ -n "$(which rustup)" ]] && rustup default nightly
   mkdir -p mozbuild
   cd librewolf-$_firefoxver-$_librewolfver
 
@@ -128,9 +130,7 @@ prepare() {
   cat >>../mozconfig <<END
 
 ac_add_options --enable-linker=lld
-
 ac_add_options --prefix=/usr
-
 ac_add_options --disable-bootstrap
 
 export CC='clang'
@@ -157,9 +157,9 @@ ac_add_options --enable-pulseaudio
 ac_add_options --with-wasi-sysroot=/usr/share/wasi-sysroot
 
 # options for ci / weaker build systems
-${_build_use_sccache:+"ac_add_options --with-ccache=sccache"}
-${_build_max_jobs:+"mk_add_options MOZ_MAKE_FLAGS="-j$_build_max_jobs""}
-$([[ "$_build_use_gold" -ne 0 ]] && echo "ac_add_options=--enable-linker=gold")
+${_LIBREWOLF_USESCCACHE:+"ac_add_options --with-ccache=sccache"}
+${_LIBREWOLF_MOZMAKEFLAGS:+"mk_add_options=MOZ_MAKE_FLAGS=$_LIBREWOLF_MOZMAKEFLAGS"}
+$([[ "${_LIBREWOLF_ENABLEGOLD:-0}" -ne 0 ]] && echo "ac_add_options=--enable-linker=gold")
 
 # optimizations
 ac_add_options OPT_LEVEL="2"
@@ -172,16 +172,11 @@ END
   export CXXFLAGS+=" -g0"
   export RUSTFLAGS="-Cdebuginfo=0"
 
-else
-
   cat >>../mozconfig <<END
 # Arch upstream has it in their PKGBUILD, ALARM does not for aarch64:
 ac_add_options --disable-elf-hack
-
 ac_add_options --enable-lto=full,cross
 END
-fi
-
   # reduce chance of builds failung during linking due to running out of memory
   export LDFLAGS+=" -Wl,--no-keep-memory"
 
@@ -212,8 +207,8 @@ build() {
   # Do 3-tier PGO
 
 
-  if [[ "${_build_profiled}" == "true" ]]; then
-    if [[ "${CARCH}" == "aarch64" ]]; then
+  if [[ "${_LIBREWOLF_ENABLEPROFILING:-1}" -eq 1 ]]; then
+    if [[ -z "${CARCH//aarch64*}" ]]; then
 
       cat >.mozconfig ../mozconfig - <<END
 ac_add_options --enable-profile-generate
@@ -248,7 +243,7 @@ END
         dbus-run-session
     )
 
-    if [[ "${_build_profiled_xvfb}" == "true" ]]; then
+    if [[ "${_LIBREWOLF_PROFILEX11:-0}" -eq 1 ]]; then
       local _headless_run=(
         xvfb-run
         -s "-screen 0 1920x1080x24 -nolisten local"
