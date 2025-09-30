@@ -157,20 +157,14 @@ ac_add_options --enable-pulseaudio
 ac_add_options --with-wasi-sysroot=/usr/share/wasi-sysroot
 
 # options for ci / weaker build systems
-# mk_add_options MOZ_MAKE_FLAGS="-j4"
-# ac_add_options --enable-linker=gold
+${_build_use_sccache:+"ac_add_options --with-ccache=sccache"}
+${_build_max_jobs:+"mk_add_options MOZ_MAKE_FLAGS="-j$_build_max_jobs""}
+$([[ "$_build_use_gold" -ne 0 ]] && echo "ac_add_options=--enable-linker=gold")
 
 # optimizations
 ac_add_options OPT_LEVEL="2"
 ac_add_options RUSTC_OPT_LEVEL="2"
-END
-
-if [[ "${CARCH}" == "aarch64" ]]; then
-  cat >>../mozconfig <<END
-# TODO: re-evaluate (is used by ALARM, but why?)
-ac_add_options --enable-optimize="-g0 -O2"
-
-ac_add_options --enable-lto
+ac_add_options --enable-optimize="-g0 -O3"
 END
 
   export MOZ_DEBUG_FLAGS=" "
@@ -184,7 +178,7 @@ else
 # Arch upstream has it in their PKGBUILD, ALARM does not for aarch64:
 ac_add_options --disable-elf-hack
 
-ac_add_options --enable-lto=cross
+ac_add_options --enable-lto=full,cross
 END
 fi
 
