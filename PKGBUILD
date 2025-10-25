@@ -1,8 +1,8 @@
 # Maintainer: ohfp/lsf <@ohfp:matrix.org>
 
-# run pgo build or not; with X(vfb) or wayland
-: ${_build_profiled:=true}
-: ${_build_profiled_xvfb:=true}
+: ${_LIBREWOLF_ENABLEPROFILING:=1}
+: ${_LIBREWOLF_PROFILEX11:=1}
+: ${_LIBREWOLF_MOZMAKEFLAGS}="--jobs=$(nproc)"
 
 pkgname=librewolf
 _pkgname=LibreWolf
@@ -49,6 +49,7 @@ depends=(
   ttf-font
 )
 makedepends=(
+  coreutils
   binutils
   cbindgen
   clang
@@ -68,13 +69,17 @@ makedepends=(
   python-setuptools
   rust
   unzip
-  'wasi-compiler-rt'
-  'wasi-libc++'
-  'wasi-libc++abi'
-  'wasi-libc'
+  wasi-compiler-rt
+  wasi-libc++
+  wasi-libc++abi
+  wasi-libc
   yasm
   zip
-  ) # pciutils: only to avoid some PGO warning(?)
+)
+
+$([[ ${_LIBREWOLF_ENABLESCCACHE:-0} -ne 0 ]] \
+  && makedepends+=(ccache sccache)
+
 optdepends=(
   'hunspell-dictionary: Spell checking'
   'libnotify: Notification integration'
@@ -83,8 +88,8 @@ optdepends=(
   'xdg-desktop-portal: Screensharing with Wayland'
 )
 
-if [[ "${_build_profiled}" == "true" ]]; then
-  if [[ "${_build_profiled_xvfb}" == "true" ]]; then
+if [[ "${_LIBREWOLF_ENABLEPROFILING:-1}" -eq 1 ]]; then
+  if [[ "${_LIBREWOLF_PROFILEX11:-1}" -eq 1 ]]; then
     makedepends+=(
       xorg-server-xvfb
     )
@@ -118,8 +123,9 @@ sha256sums=('fd3b6acfbaaaf910a4804dcfb6a4ab79067efa39ec7ba09ea57517434a05113e'
 
 validpgpkeys=('034F7776EF5E0C613D2F7934D29FBD5F93C0CFC3') # maltej(?)
 
-
 prepare() {
+  [[ -n "$(which rustup)" ]] && rustup default nightly
+
   mkdir -p mozbuild
   cd librewolf-$_firefoxver-$_librewolfver
 
@@ -157,20 +163,16 @@ ac_add_options --enable-pulseaudio
 ac_add_options --with-wasi-sysroot=/usr/share/wasi-sysroot
 
 # options for ci / weaker build systems
-# mk_add_options MOZ_MAKE_FLAGS="-j4"
-# ac_add_options --enable-linker=gold
+$([[ ${_LIBREWOLF_ENABLESCCACHE:-1} -ne 0 ]] && echo "ac_add_options --with-ccache=sccache")
+
+${_LIBREWOLF_MOZMAKEFLAGS:+"mk_add_options=MOZ_MAKE_FLAGS=$_LIBREWOLF_MOZMAKEFLAGS"}
+
+$([[ "${_LIBREWOLF_ENABLEGOLD:-0}" -ne 0 ]] && echo "ac_add_options=--enable-linker=gold")
 
 # optimizations
 ac_add_options OPT_LEVEL="2"
 ac_add_options RUSTC_OPT_LEVEL="2"
-END
-
-if [[ "${CARCH}" == "aarch64" ]]; then
-  cat >>../mozconfig <<END
-# TODO: re-evaluate (is used by ALARM, but why?)
-ac_add_options --enable-optimize="-g0 -O2"
-
-ac_add_options --enable-lto
+ac_add_options --enable-optimize="-g0 -O3"
 END
 
   export MOZ_DEBUG_FLAGS=" "
@@ -178,15 +180,11 @@ END
   export CXXFLAGS+=" -g0"
   export RUSTFLAGS="-Cdebuginfo=0"
 
-else
-
   cat >>../mozconfig <<END
 # Arch upstream has it in their PKGBUILD, ALARM does not for aarch64:
 ac_add_options --disable-elf-hack
-
-ac_add_options --enable-lto=cross
+ac_add_options --enable-lto=full,cross
 END
-fi
 
   # reduce chance of builds failung during linking due to running out of memory
   export LDFLAGS+=" -Wl,--no-keep-memory"
@@ -218,8 +216,8 @@ build() {
   # Do 3-tier PGO
 
 
-  if [[ "${_build_profiled}" == "true" ]]; then
-    if [[ "${CARCH}" == "aarch64" ]]; then
+  if [[ "${_LIBREWOLF_ENABLEPROFILING:-1}" -eq 1 ]]; then
+    if [[ -z "${CARCH//aarch64*}" ]]; then
 
       cat >.mozconfig ../mozconfig - <<END
 ac_add_options --enable-profile-generate
@@ -254,7 +252,7 @@ END
         dbus-run-session
     )
 
-    if [[ "${_build_profiled_xvfb}" == "true" ]]; then
+    if [[ "${_LIBREWOLF_PROFILEX11:-}" -eq 1 ]]; then
       local _headless_run=(
         xvfb-run
         -s "-screen 0 1920x1080x24 -nolisten local"
@@ -276,7 +274,7 @@ END
     if [[ -s merged.profdata ]]; then
       stat -c "Profile data found (%s bytes)" merged.profdata
 
-      if [[ "${CARCH}" == "x86_64" ]]; then
+      if [[ "${CARCH%%_v[0-9]}" == "x86_64" ]]; then
         cat >.mozconfig ../mozconfig - <<END
 ac_add_options --enable-profile-use
 END

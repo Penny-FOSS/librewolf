@@ -9,6 +9,7 @@ pkgbase = librewolf
 	arch = x86_64_v3
 	arch = aarch64
 	license = MPL-2.0
+	makedepends = coreutils
 	makedepends = binutils
 	makedepends = cbindgen
 	makedepends = clang
