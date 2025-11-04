@@ -75,9 +75,11 @@ makedepends=(
   wasi-libc
   yasm
   zip
-  $([[ ${_LIBREWOLF_ENABLESCCACHE:-0} -ne 0 ]] && echo "sccache")
 )
-   # pciutils: only to avoid some PGO warning(?)
+
+$([[ ${_LIBREWOLF_ENABLESCCACHE:-0} -ne 0 ]] \
+  && makedepends+=(ccache sccache)
+
 optdepends=(
   'hunspell-dictionary: Spell checking'
   'libnotify: Notification integration'
