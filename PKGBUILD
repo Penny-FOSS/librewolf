@@ -77,7 +77,7 @@ makedepends=(
   zip
 )
 
-$([[ ${_LIBREWOLF_ENABLESCCACHE:-0} -ne 0 ]] \
+[[ "${_LIBREWOLF_ENABLESCCACHE:-0}" -ne 0 ]] \
   && makedepends+=(ccache sccache)
 
 optdepends=(
@@ -163,8 +163,6 @@ ac_add_options --enable-pulseaudio
 ac_add_options --with-wasi-sysroot=/usr/share/wasi-sysroot
 
 # options for ci / weaker build systems
-$([[ ${_LIBREWOLF_ENABLESCCACHE:-1} -ne 0 ]] && echo "ac_add_options --with-ccache=sccache")
-
 ${_LIBREWOLF_MOZMAKEFLAGS:+"mk_add_options=MOZ_MAKE_FLAGS=$_LIBREWOLF_MOZMAKEFLAGS"}
 
 $([[ "${_LIBREWOLF_ENABLEGOLD:-0}" -ne 0 ]] && echo "ac_add_options=--enable-linker=gold")
